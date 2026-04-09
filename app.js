@@ -25,6 +25,23 @@ function saveStudentsToStorage(students) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
 }
 
+/**
+ * getNextRollNumber — returns the next available roll number.
+ * Keeps values unique by using the current maximum + 1.
+ * @returns {number}
+ */
+function getNextRollNumber() {
+    const students = getStudentsFromStorage();
+    if (students.length === 0) return 1;
+
+    const maxRoll = students.reduce((max, student) => {
+        const roll = Number(student.rollNumber);
+        return Number.isFinite(roll) && roll > max ? roll : max;
+    }, 0);
+
+    return maxRoll + 1;
+}
+
 // ─── Core Functions ──────────────────────────────────────────────────────────
 
 /**
@@ -49,6 +66,8 @@ function addStudent(name, age, grade, email) {
         return { success: false, message: 'Age must be a number between 1 and 100.' };
     }
 
+    const parsedRollNumber = getNextRollNumber();
+
     // Basic email format check
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -58,10 +77,10 @@ function addStudent(name, age, grade, email) {
     const students = getStudentsFromStorage();
 
     // Prevent duplicate emails
-    const duplicate = students.some(
+    const duplicateEmail = students.some(
         (s) => s.email.toLowerCase() === email
     );
-    if (duplicate) {
+    if (duplicateEmail) {
         return { success: false, message: 'A student with this email already exists.' };
     }
 
@@ -69,6 +88,7 @@ function addStudent(name, age, grade, email) {
         id: crypto.randomUUID(),
         name,
         age: parsedAge,
+        rollNumber: parsedRollNumber,
         grade,
         email,
         createdAt: new Date().toISOString(),
@@ -93,7 +113,8 @@ function listStudents(query = '') {
     return students.filter(
         (s) =>
             s.name.toLowerCase().includes(lower) ||
-            s.grade.toLowerCase().includes(lower)
+            s.grade.toLowerCase().includes(lower) ||
+            s.rollNumber.toString().includes(lower)
     );
 }
 
@@ -174,6 +195,7 @@ function createStudentCard(student) {
     card.appendChild(deleteBtn);
     card.appendChild(nameEl);
     card.appendChild(makeField('Age', student.age));
+    card.appendChild(makeField('Roll Number', student.rollNumber ?? 'N/A'));
     card.appendChild(makeField('Grade', student.grade));
     card.appendChild(makeField('Email', student.email));
     card.appendChild(makeField('Added', joined));
